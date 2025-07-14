@@ -4,14 +4,12 @@ const path = require('path');
 const stream = require('stream');
 const net = require('net');
 
-// Create CLI interface
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
 rl.question("Enter the receiver's IP address\n", (ipAddress) => {
     rl.question("Enter the file path\n", (filePath) => {
-        // Now both inputs are available here
         const resolvedPath = path.resolve(filePath);
 
         fs.access(resolvedPath, fs.constants.F_OK, (err) => {

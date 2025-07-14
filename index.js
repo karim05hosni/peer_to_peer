@@ -13,5 +13,4 @@ rl.question("are you a sender or receiver? (s/r)\n", (answer) => {
     } else {
         console.log("Invalid input. Please enter 's' for sender or 'r' for receiver.");
     }
-    // rl.close();
 });
