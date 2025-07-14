@@ -22,10 +22,42 @@ rl.question("Enter the receiver's IP address\n", (ipAddress) => {
             }
             console.log('file exists');
             const client = net.createConnection({ port: 8080, host: ipAddress }, () => {
-                
                 console.log("connected successfully");
-                // Create a read stream and pipe to socket
-                // fs.createReadStream(resolvedPath).pipe(client);
+                const totalChunks = Math.ceil(fs.statSync(resolvedPath).size / (16* 1024));
+
+                const handshakeHeader = {
+                    type: "handshake",
+                    filename: path.basename(resolvedPath),
+                    filesize: fs.statSync(resolvedPath).size,
+                    fileExtension: path.extname(resolvedPath),
+                    chunkSize: 16* 1024, // 32kb
+                    totalChunks: totalChunks
+                };
+
+                const handshakeBuffer = Buffer.from(JSON.stringify(handshakeHeader));
+                const handshakeLength = Buffer.alloc(4);
+                handshakeLength.writeUInt32BE(handshakeBuffer.length);
+
+                client.write(Buffer.concat([handshakeLength, handshakeBuffer]));
+
+                let counter = 1;
+                fs.createReadStream(resolvedPath, { highWaterMark: 16* 1024 })
+                    .on('data', (chunk) => {
+                        const chunkHeader = {
+                            type: "chunk",
+                            chunkNumber: counter,
+                            chunkSize: chunk.length,
+                            finalFlag: counter === totalChunks
+                        };
+                        const chunkHeaderBuffer = Buffer.from(JSON.stringify(chunkHeader));
+                        const chunkHeaderLength = Buffer.alloc(4);
+                        chunkHeaderLength.writeUInt32BE(chunkHeaderBuffer.length);
+
+                        const packet = Buffer.concat([chunkHeaderLength, chunkHeaderBuffer, chunk]);
+                        client.write(packet);
+
+                        counter++;
+                    });
             });
             rl.close();
         });
